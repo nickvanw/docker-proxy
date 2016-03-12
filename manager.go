@@ -2,7 +2,6 @@ package dockerproxy
 
 import (
 	"time"
- 	"fmt"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
@@ -18,11 +17,12 @@ type Manager struct {
 }
 
 type DockerConfig struct {
-	Addr string
-	TLS  bool
-	Cert string
-	CA   string
-	Key  string
+	Watchers []string
+	Leader   string
+	TLS      bool
+	Cert     string
+	CA       string
+	Key      string
 }
 
 func New(cfg DockerConfig) (*Manager, error) {
@@ -30,8 +30,8 @@ func New(cfg DockerConfig) (*Manager, error) {
 		update: make(chan struct{}),
 		d:      cfg,
 	}
-	// test to make sure our docker connection works
-	if _, err := m.newClient(); err != nil {
+	// test our leader to make sure our docker connection works
+	if _, err := m.newClient(cfg.Leader, 0); err != nil {
 		return nil, err
 	}
 	return m, nil
@@ -46,30 +46,46 @@ func (m *Manager) Start(ctx context.Context, d time.Duration) {
 	log.Info("starting update mechanism")
 	go m.updater(ctx)
 
-	log.Info("starting docker event poller")
-	go m.watcher(ctx)
+	log.Info("starting docker event poller(s)")
+	go m.watcher(m.d.Leader, ctx)
+	for _, v := range m.d.Watchers {
+		go m.watcher(v, ctx)
+	}
 
 	log.Info("starting polling loop")
 	go m.startPoll(ctx, d)
 }
 
-func (m *Manager) watcher(ctx context.Context) {
+func (m *Manager) watcher(addr string, ctx context.Context) {
+	tries := 0
 	for {
-		client, err := m.newClient()
+		ll := log.WithField("host", addr)
+		client, err := m.newClient(addr, tries)
+		tries++
 		if err != nil {
+			ll.WithError(err).Error("error connecting to Docker")
 			continue
 		}
 		watcher := make(chan *docker.APIEvents)
 		if err := client.AddEventListener(watcher); err != nil {
+			ll.WithError(err).Error("error starting listener")
 			continue
 		}
-		log.Info("polling...")
+		tries = 0
+		ll.Info("polling...")
+	Watch:
 		for {
 			var err error
 			select {
-			case ev := <-watcher:
-				fmt.Printf("%#v\n",ev)
-				ll := eventLogger(ev)
+			case ev, ok := <-watcher:
+				if !ok {
+					ll.Info("listener closed")
+					break Watch
+				}
+				if ev == nil {
+					continue
+				}
+				ll := eventLogger(ll, ev)
 				ll.Info("received event")
 				if isTracked(ev) {
 					ll.Info("sending update")
@@ -81,7 +97,8 @@ func (m *Manager) watcher(ctx context.Context) {
 				err = client.Ping()
 			}
 			if err != nil {
-				break
+				ll.WithError(err).Error("listener error")
+				break Watch
 			}
 		}
 	}
@@ -103,10 +120,10 @@ func (m *Manager) startPoll(ctx context.Context, d time.Duration) {
 
 // newClient produces a new Docker connection and checks to make sure that it can ping
 // the Docker socket. It will properly back off and throttle to avoid too many connections
-//todo(nick): use a sync.Pool here?
-//todo(nick): add backoff
-func (m *Manager) newClient() (*docker.Client, error) {
-	client, err := newDockerClient(m.d.Addr, m.d.TLS, m.d.Cert, m.d.CA, m.d.Key)
+func (m *Manager) newClient(addr string, tries int) (*docker.Client, error) {
+	backoff(tries)
+	log.WithField("addr", addr).Info("creating client")
+	client, err := newDockerClient(addr, m.d.TLS, m.d.Cert, m.d.CA, m.d.Key)
 	if err != nil {
 		return nil, err
 	}
