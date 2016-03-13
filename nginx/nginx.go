@@ -1,13 +1,30 @@
 package nginx
 
-// Instance represents a single NGINX server
+import (
+	"fmt"
+
+	"github.com/nickvanw/docker-proxy"
+)
+
 type Server struct {
-	Sites []Site
+	SSLDir   string
+	Reloader Reloader
 }
 
-// Site represents a single virtual host
-type Site struct {
-	Host    string
-	Address string
-	Port    string
+func (s *Server) Start(sites []dockerproxy.Site) error {
+	fmt.Println("start")
+	return nil
+}
+
+func (s *Server) Update(sites []dockerproxy.Site) error {
+	fmt.Println("update")
+	return nil
+}
+
+func (s *Server) Name() string {
+	return "nginx"
+}
+
+type Reloader interface {
+	Reload() error
 }

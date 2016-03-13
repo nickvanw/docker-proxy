@@ -9,13 +9,17 @@ import (
 )
 
 // Manager handles the state and coordinates updates of the mappings
-// of Sites -> Containers
+// of Containers -> Sites
 type Manager struct {
+	notify []watcher
 	update chan struct{}
 
 	d DockerConfig
 }
 
+// DockerConfig contains the hosts/sockets of the Docker API to pull
+// a list of containers from, as well as any other watchers to
+// trigger events from
 type DockerConfig struct {
 	Watchers []string
 	Leader   string
@@ -25,6 +29,14 @@ type DockerConfig struct {
 	Key      string
 }
 
+type watcher interface {
+	Start([]Site) error
+	Update([]Site) error
+	Name() string
+}
+
+// New creates a new manager with the specified Docker configuration.
+// it will Ping the Leader to make sure the configuration is valid.
 func New(cfg DockerConfig) (*Manager, error) {
 	m := &Manager{
 		update: make(chan struct{}),
@@ -54,6 +66,10 @@ func (m *Manager) Start(ctx context.Context, d time.Duration) {
 
 	log.Info("starting polling loop")
 	go m.startPoll(ctx, d)
+}
+
+func (m *Manager) Register(w watcher) {
+	m.notify = append(m.notify, w)
 }
 
 func (m *Manager) watcher(addr string, ctx context.Context) {

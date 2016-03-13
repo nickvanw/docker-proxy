@@ -1,13 +1,17 @@
 package dockerproxy
 
 import (
-	"fmt"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/fsouza/go-dockerclient"
 	"golang.org/x/net/context"
 )
+
+var containerListOptions = docker.ListContainersOptions{
+	Size:    false,
+	Filters: map[string][]string{"status": []string{"running"}},
+}
 
 func (m *Manager) updater(ctx context.Context) {
 	listener := debounceChannel(5*time.Second, m.update)
@@ -17,8 +21,14 @@ func (m *Manager) updater(ctx context.Context) {
 			if !ok {
 				return
 			}
-			log.Info("updating containers...")
-			m.updateContainers()
+			t := time.Now()
+			log.Info("updating containers")
+			if err := m.updateContainers(); err != nil {
+				log.WithError(err).Error("unable to update container mappings")
+			}
+			log.WithField("duration", time.Since(t)).Info("updated containers")
+		case <-ctx.Done():
+			return
 		}
 	}
 }
@@ -26,19 +36,24 @@ func (m *Manager) updater(ctx context.Context) {
 func (m *Manager) updateContainers() error {
 	client, err := m.newClient(m.d.Leader, 0)
 	if err != nil {
-		//todo(nick): build in retries
 		return err
 	}
-	opts := docker.ListContainersOptions{
-		Size:    false,
-		Filters: map[string][]string{"status": []string{"running"}},
-	}
 
-	containers, err := client.ListContainers(opts)
+	containers, err := client.ListContainers(containerListOptions)
 	if err != nil {
 		return err
 	}
-	fmt.Println(containers)
+	mapping, err := mapContainers(client, containers)
+	if err != nil {
+		return err
+	}
+
+	for _, v := range m.notify {
+		if err := v.Update(mapping); err != nil {
+			log.WithError(err).WithField("notifier", v.Name()).Error("unable to update mapping")
+		}
+	}
+
 	return nil
 }
 
