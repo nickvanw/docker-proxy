@@ -19,5 +19,7 @@ ADD nginx/nginx.conf /etc/nginx/nginx.conf
 # Expose web ports
 EXPOSE 80 443
 
+ENV NGINX_RELOAD_CMD "nginx -s reload"
+
 # Enter into our init system
 ENTRYPOINT /init

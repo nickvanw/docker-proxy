@@ -51,10 +51,9 @@ func New(cfg DockerConfig) (*Manager, error) {
 // Start begins waiting for events on the Docker endpoint, as well as
 // polling every `d` seconds
 func (m *Manager) Start(ctx context.Context, d time.Duration) {
-	// send a single update to updater
+	// send an initial update request
 	go func() { m.update <- struct{}{} }()
 
-	// start updater
 	log.Info("starting update mechanism")
 	go m.updater(ctx)
 

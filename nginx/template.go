@@ -14,6 +14,12 @@ map $http_upgrade $proxy_connection {
   '' close;
 }
 
+# Set appropriate X-Forwarded-Ssl header
+map $scheme $proxy_x_forwarded_ssl {
+  default off;
+  https on;
+}
+
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
 log_format vhost '$host $remote_addr - $remote_user [$time_local] '
@@ -31,6 +37,7 @@ proxy_set_header Connection $proxy_connection;
 proxy_set_header X-Real-IP $remote_addr;
 proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 proxy_set_header X-Forwarded-Proto $proxy_x_forwarded_proto;
+proxy_set_header X-Forwarded-Ssl $proxy_x_forwarded_ssl;
 
 # Set the default server
 server {
@@ -39,21 +46,46 @@ server {
 	return 503;
 }
 
-{{ range . }}
-{{ $ID := .ID }}
-upstream {{ $ID }} {
+{{ $Update := . }}
+{{ range .Sites }}
+{{ $Site := . }}
+upstream {{ $Site.ID }} {
 	## Network: {{ .Contact.Network }}
 	server {{ .Contact.Address }}:{{ .Contact.Port }};
 }
 {{ range .Hosts }}
+{{ if $Update.HasSSL . }}
+server {
+	server_name {{ . }};
+	listen 80;
+	return 301 https://$host$request_uri;
+}
+server {
+	server_name {{ . }};
+	listen 443 ssl;
+
+	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+	ssl_ciphers "ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-DSS-AES128-GCM-SHA256:kEDH+AESGCM:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA384:ECDHE-RSA-AES256-SHA:ECDHE-ECDSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-DSS-AES128-SHA256:DHE-RSA-AES256-SHA256:DHE-DSS-AES256-SHA:DHE-RSA-AES256-SHA:ECDHE-RSA-DES-CBC3-SHA:ECDHE-ECDSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:AES:CAMELLIA:DES-CBC3-SHA:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!aECDH:!EDH-DSS-DES-CBC3-SHA:!KRB5-DES-CBC3-SHA";
+	ssl_prefer_server_ciphers on;
+	ssl_session_timeout 5m;
+	ssl_session_cache shared:SSL:50m;
+
+	ssl_certificate {{ $Update.SSLPrefix . }}.crt;
+	ssl_certificate_key {{ $Update.SSLPrefix . }}.key;
+	add_header Strict-Transport-Security "max-age=31536000";
+	location / {
+		proxy_pass http://{{ $Site.ID }};
+	}
+}
+{{ else }}
 server {
 	server_name {{ . }};
 	listen 80;
 	location / {
-		proxy_pass http://{{ $ID }};
+		proxy_pass http://{{ $Site.ID }};
 	}
 }
 {{ end }}
-
+{{ end }}
 {{ end }}
 `

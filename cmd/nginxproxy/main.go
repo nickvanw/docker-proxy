@@ -54,6 +54,12 @@ func main() {
 			Usage:  "Location of nginx SSL certs",
 			EnvVar: "NGINX_CERT_PATH",
 		},
+		cli.StringFlag{
+			Name:   "nginx.reload",
+			Value:  "",
+			Usage:  "command to reload nginx",
+			EnvVar: "NGINX_RELOAD_CMD",
+		},
 	}
 	app.Run(os.Args)
 }
@@ -75,7 +81,7 @@ func realMain(c *cli.Context) {
 		log.Fatalf("error creating new docker proxy: %s", err)
 	}
 
-	nginx, err := nginx.New(c.String("nginx.certs"), c.String("nginx.conf"))
+	nginx, err := nginx.New(c.String("nginx.certs"), c.String("nginx.conf"), c.String("nginx.reload"))
 	if err != nil {
 		log.Fatalf("error creating nginx watcher: %s", err)
 	}

@@ -14,7 +14,7 @@ var containerListOptions = docker.ListContainersOptions{
 }
 
 func (m *Manager) updater(ctx context.Context) {
-	listener := debounceChannel(5*time.Millisecond, m.update)
+	listener := debounceChannel(3*time.Second, m.update)
 	for {
 		select {
 		case _, ok := <-listener:
