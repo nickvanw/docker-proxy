@@ -19,6 +19,9 @@ func parseKV(kv []string) (map[string]string, error) {
 			return nil, ErrInvalidLine
 		}
 		data := strings.SplitN(v, sep, 2)
+		if len(data) != 2 {
+			return nil, ErrInvalidLine
+		}
 		out[data[0]] = data[1]
 	}
 	return out, nil

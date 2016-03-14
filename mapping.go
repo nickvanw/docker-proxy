@@ -40,6 +40,7 @@ func mapContainers(client *docker.Client, containers []docker.APIContainers) ([]
 	if err != nil {
 		return nil, err
 	}
+
 	for _, v := range containers {
 		if v.ID == me {
 			continue
@@ -49,12 +50,18 @@ func mapContainers(client *docker.Client, containers []docker.APIContainers) ([]
 		if err != nil {
 			return nil, err
 		}
-		hosts, ok := findHosts(info.Config.Env)
+		env, err := parseKV(info.Config.Env)
+		if err != nil {
+			return nil, err
+		}
+
+		hosts, ok := findHosts(env)
 		if !ok {
 			continue
 		}
+
 		portMap := info.NetworkSettings.PortMappingAPI()
-		port, _ := findPort(info.Config.Env)
+		port, _ := findPort(env)
 		mapping, ok := findMapping(myNets, v.Networks, portMap, port)
 		if !ok {
 			continue
@@ -71,27 +78,21 @@ func mapContainers(client *docker.Client, containers []docker.APIContainers) ([]
 	return list, nil
 }
 
-func findHosts(env []string) ([]string, bool) {
-	for _, v := range env {
-		if strings.HasPrefix(strings.ToUpper(v), hostKey) {
-			str := strings.ToLower(v)
-			str = strings.TrimLeft(v, hostKey+"=")
-			return strings.Split(str, ","), true
-		}
+func findHosts(env map[string]string) ([]string, bool) {
+	data, ok := env[hostKey]
+	if !ok {
+		return nil, false
 	}
-	return nil, false
+	return strings.Split(data, ","), true
 }
 
-func findPort(env []string) (int64, bool) {
-	for _, v := range env {
-		if strings.HasPrefix(strings.ToUpper(v), portKey) {
-			str := strings.ToLower(v)
-			str = strings.TrimLeft(v, portKey+"=")
-			num, err := strconv.Atoi(str)
-			return int64(num), err == nil
-		}
+func findPort(env map[string]string) (int64, bool) {
+	data, ok := env[portKey]
+	if !ok {
+		return 0, false
 	}
-	return 0, false
+	num, err := strconv.Atoi(data)
+	return int64(num), err == nil
 }
 
 func findMapping(my []string, you docker.NetworkList, ports []docker.APIPort, port int64) (*Mapping, bool) {
@@ -108,11 +109,14 @@ func findMapping(my []string, you docker.NetworkList, ports []docker.APIPort, po
 			}, true
 		}
 	}
-	return &Mapping{
-		Address: data.IP,
-		Network: "public",
-		Port:    data.PublicPort,
-	}, false
+	if data.IP != "" && data.PublicPort != 0 {
+		return &Mapping{
+			Address: data.IP,
+			Network: "public",
+			Port:    data.PublicPort,
+		}, true
+	}
+	return nil, false
 }
 
 func findAPIPort(ports []docker.APIPort, port int64) (*docker.APIPort, bool) {
@@ -165,13 +169,11 @@ func currentContainerID() (string, error) {
 	re := regexp.MustCompilePOSIX(regex)
 
 	for scanner.Scan() {
-		_, lines, err := bufio.ScanBytes(scanner.Bytes(), true)
+		_, lines, err := bufio.ScanLines([]byte(scanner.Text()), true)
 		if err == nil {
 			if re.MatchString(string(lines)) {
 				submatches := re.FindStringSubmatch(string(lines))
-				if len(submatches) > 0 {
-					return submatches[1], nil
-				}
+				return submatches[1], nil
 			}
 		}
 	}

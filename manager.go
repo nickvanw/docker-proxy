@@ -30,7 +30,6 @@ type DockerConfig struct {
 }
 
 type watcher interface {
-	Start([]Site) error
 	Update([]Site) error
 	Name() string
 }
@@ -52,7 +51,8 @@ func New(cfg DockerConfig) (*Manager, error) {
 // Start begins waiting for events on the Docker endpoint, as well as
 // polling every `d` seconds
 func (m *Manager) Start(ctx context.Context, d time.Duration) {
-	// bootstrap initial config
+	// send a single update to updater
+	go func() { m.update <- struct{}{} }()
 
 	// start updater
 	log.Info("starting update mechanism")
