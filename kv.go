@@ -8,6 +8,7 @@ import (
 const sep = "="
 
 var (
+	// ErrInvalidLine is returned when a malformed environment line is passed
 	ErrInvalidLine = errors.New("invalid line passed to parse")
 )
 

@@ -1,6 +1,6 @@
 package nginx
 
-var nginxTemplate = `
+var nginxHeader = `
 # Pass along X-Forwarded-Proto if we have it, otherwise 
 # pass along the scheme of the request
 map $http_x_forwarded_proto $proxy_x_forwarded_proto {
@@ -45,23 +45,24 @@ server {
 	listen 80;
 	return 503;
 }
+`
 
-{{ $Update := . }}
-{{ range .Sites }}
-{{ $Site := . }}
-upstream {{ $Site.ID }} {
+var nginxUpstream = `
+upstream {{ .ID }} {
 	## Network: {{ .Contact.Network }}
 	server {{ .Contact.Address }}:{{ .Contact.Port }};
 }
-{{ range .Hosts }}
-{{ if $Update.HasSSL . }}
+`
+
+var nginxWithSSL = `
 server {
-	server_name {{ . }};
+	server_name {{ .Host }};
 	listen 80;
 	return 301 https://$host$request_uri;
 }
+
 server {
-	server_name {{ . }};
+	server_name {{ .Host }};
 	listen 443 ssl;
 
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
@@ -70,22 +71,21 @@ server {
 	ssl_session_timeout 5m;
 	ssl_session_cache shared:SSL:50m;
 
-	ssl_certificate {{ $Update.SSLPrefix . }}.crt;
-	ssl_certificate_key {{ $Update.SSLPrefix . }}.key;
+	ssl_certificate {{ .SSLPrefix }}.crt;
+	ssl_certificate_key {{ .SSLPrefix }}.key;
 	add_header Strict-Transport-Security "max-age=31536000";
 	location / {
-		proxy_pass http://{{ $Site.ID }};
+		proxy_pass http://{{ .ID }};
 	}
 }
-{{ else }}
+`
+
+var nginxNoSSL = `
 server {
-	server_name {{ . }};
+	server_name {{ .Host }};
 	listen 80;
 	location / {
-		proxy_pass http://{{ $Site.ID }};
+		proxy_pass http://{{ .ID }};
 	}
 }
-{{ end }}
-{{ end }}
-{{ end }}
 `

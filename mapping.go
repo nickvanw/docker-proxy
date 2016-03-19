@@ -24,6 +24,7 @@ type Site struct {
 	Names   []string
 	Contact Mapping
 	Hosts   []string
+	Env     map[string]string
 }
 
 // Mapping represents an IP/Port as well as optional network name
@@ -72,6 +73,7 @@ func mapContainers(client *docker.Client, containers []docker.APIContainers) ([]
 			Names:   v.Names,
 			Contact: *mapping,
 			Hosts:   hosts,
+			Env:     env,
 		}
 		list = append(list, c)
 	}

@@ -81,14 +81,15 @@ func realMain(c *cli.Context) {
 		log.Fatalf("error creating new docker proxy: %s", err)
 	}
 
-	nginx, err := nginx.New(c.String("nginx.certs"), c.String("nginx.conf"), c.String("nginx.reload"))
+	nginx, err := nginx.New(c.String("nginx.certs"),
+		c.String("nginx.conf"), c.String("nginx.reload"))
 	if err != nil {
 		log.Fatalf("error creating nginx watcher: %s", err)
 	}
 	m.Register(nginx)
 
 	ctx, cancel := context.WithCancel(context.Background())
-	m.Start(ctx, time.Minute)
+	m.Start(ctx, 10*time.Minute)
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
