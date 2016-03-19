@@ -1,13 +1,13 @@
 docker-proxy
 ============
 
-Docker proxy is a reverse proxy for Docker containers that allows the load balancing of multiple sites. It's not a unique idea - there are many clones, but I found myself wanting a few things from the majority that I saw:
+The Docker Proxy project consists of a few components. The end goal is to create a system for reverse proxying containers automatically as they are created and destroyed, allowing the end user to map a single endpoint to multiple containers. The project was created with Docker 1.10 in mind, meaning it supports overlay networks as a first class citizen. The first iteration currently does this using nginx, but a haproxy backend may also be in the works in the future.
 
-* More introspection into the current websites and containers
-* Prodcution stability
-* More flexible virtual host configuration
+The concept, as well as the environment variables to direct it, was taken from [jwilder/nginx-proxy](https://github.com/jwilder/nginx-proxy). Unfortunately, I found that I wanted a few things that it did not provide:
 
-Many of the ideas were taken from [jwilder/nginx-proxy](https://github.com/jwilder/nginx-proxy), which is the leading project. Unfortunately, there were many edge cases and bugs when I attempted to use it, and I did not have the level of introspection that I wanted.
+* More introspection into the current websites and containers that are mapped
+* Production stability
+* The ability to watch multiple Docker engines for change, which is very useful in a Swarm environment where the manager does not always report events. 
 
 The project is currently a work in progress, but PRs are always welcome, as well as Issues/Feature Requests.
 

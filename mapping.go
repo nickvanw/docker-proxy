@@ -159,6 +159,10 @@ func myInfo(client *docker.Client) ([]string, string, error) {
 }
 
 func currentContainerID() (string, error) {
+	if id, ok := os.LookupEnv("CONTAINER_ID"); ok {
+		return id, nil
+	}
+
 	file, err := os.Open("/proc/self/cgroup")
 	if err != nil {
 		return "", err

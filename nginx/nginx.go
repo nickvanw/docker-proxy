@@ -13,6 +13,8 @@ import (
 	"github.com/nickvanw/docker-proxy"
 )
 
+const sslNameEnv = "CERT_NAME"
+
 // Server represents an nginx server to configure
 type Server struct {
 	ssl    string
@@ -41,6 +43,8 @@ func New(ssl, config, reload string) (*Server, error) {
 	s.upstreamTpl = template.Must(template.New("nginxUpstream").Parse(nginxUpstream))
 	s.noSSLTpl = template.Must(template.New("nginxNoSSL").Parse(nginxNoSSL))
 	s.sslTpl = template.Must(template.New("nginxWithSSL").Parse(nginxWithSSL))
+	template.Must(s.noSSLTpl.Parse(nginxOptions))
+	template.Must(s.sslTpl.Parse(nginxOptions))
 
 	return s, nil
 }
@@ -100,12 +104,14 @@ type dockersite struct {
 	Host      string
 	ID        string
 	SSLPrefix string
+	Config    map[string]string
 }
 
 func (s *Server) renderHost(wr io.Writer, host string, site dockerproxy.Site) error {
 	d := dockersite{
-		Host: host,
-		ID:   site.ID,
+		Host:   host,
+		ID:     site.ID,
+		Config: envToDirectives(site.Env),
 	}
 	var ok bool
 
@@ -123,7 +129,7 @@ func (s *Server) renderHost(wr io.Writer, host string, site dockerproxy.Site) er
 
 func (s *Server) sslInfo(host string, site dockerproxy.Site) (string, bool) {
 	key := host
-	if name, ok := site.Env["CERT_NAME"]; ok {
+	if name, ok := site.Env[sslNameEnv]; ok {
 		key = name
 	}
 	pfx := filepath.Join(s.ssl, key)
