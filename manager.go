@@ -67,6 +67,7 @@ func (m *Manager) Start(ctx context.Context, d time.Duration) {
 	go m.startPoll(ctx, d)
 }
 
+// Register adds a watcher to be updated when the containers change
 func (m *Manager) Register(w watcher) {
 	m.notify = append(m.notify, w)
 }

@@ -8,6 +8,7 @@ import (
 )
 
 var (
+	// ErrInvalidURL is returned when the URL is invalid for a Docker endpoint
 	ErrInvalidURL = errors.New("unknown URL scheme for docker endpoint")
 )
 
