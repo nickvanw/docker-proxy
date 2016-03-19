@@ -69,10 +69,15 @@ func debounceChannel(interval time.Duration, input chan struct{}) chan struct{} 
 				close(output)
 				return
 			}
-			select {
-			case <-input:
-			case <-time.After(interval):
-				output <- struct{}{}
+		Triggered:
+			for {
+				select {
+				case <-input:
+				case <-time.After(interval):
+					log.Info("debounce triggered, updating")
+					output <- struct{}{}
+					break Triggered
+				}
 			}
 		}
 	}()
