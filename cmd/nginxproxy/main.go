@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -68,6 +69,10 @@ func realMain(c *cli.Context) {
 	cfg := dockerproxy.DockerConfig{
 		Leader: c.String("docker.leader"),
 		TLS:    c.Bool("docker.tls"),
+	}
+
+	if followers := c.String("followers"); followers != "" {
+		cfg.Watchers = strings.Split(followers, ",")
 	}
 
 	if dir := c.String("docker.certs"); dir != "" {
