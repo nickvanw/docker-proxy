@@ -74,6 +74,7 @@ server {
 	ssl_certificate {{ .SSLPrefix }}.crt;
 	ssl_certificate_key {{ .SSLPrefix }}.key;
 	add_header Strict-Transport-Security "max-age=31536000";
+	{{ template "config" .Config }}
 	location / {
 		proxy_pass http://{{ .ID }};
 	}
@@ -84,8 +85,11 @@ var nginxNoSSL = `
 server {
 	server_name {{ .Host }};
 	listen 80;
+	{{ template "config" .Config }}
 	location / {
 		proxy_pass http://{{ .ID }};
 	}
 }
 `
+
+var nginxOptions = `{{ define "config" }}{{ range $key, $value := . }}{{ $key }} {{ $value }};{{ end }} {{ end }}`
