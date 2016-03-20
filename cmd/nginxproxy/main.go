@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log/syslog"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	log "github.com/Sirupsen/logrus"
+	syslogrus "github.com/Sirupsen/logrus/hooks/syslog"
 	"github.com/codegangsta/cli"
 	"github.com/nickvanw/docker-proxy"
 	"github.com/nickvanw/docker-proxy/nginx"
@@ -62,16 +64,23 @@ func main() {
 			EnvVar: "NGINX_RELOAD_CMD",
 		},
 		cli.StringFlag{
-			Name:   "nginx.syslog",
+			Name:   "syslog",
 			Value:  "",
-			Usage:  "syslog server to send nginx logs",
-			EnvVar: "NGINX_SYSLOG_HOST",
+			Usage:  "syslog server to send nginx and nginxproxy logs",
+			EnvVar: "SYSLOG_HOST",
 		},
 	}
 	app.Run(os.Args)
 }
 
 func realMain(c *cli.Context) {
+	if loghost := c.String("syslog"); loghost != "" {
+		if hook, err := syslogrus.NewSyslogHook("udp", loghost, syslog.LOG_INFO, "nginxproxy"); err == nil {
+			log.SetFormatter(&log.JSONFormatter{})
+			log.AddHook(hook)
+		}
+	}
+
 	cfg := dockerproxy.DockerConfig{
 		Leader: c.String("docker.leader"),
 		TLS:    c.Bool("docker.tls"),
@@ -97,8 +106,9 @@ func realMain(c *cli.Context) {
 	if err != nil {
 		log.Fatalf("error creating nginx watcher: %s", err)
 	}
-	if syslog := c.String("nginx.syslog"); syslog != "" {
-		nginx.Syslog = syslog
+
+	if loghost := c.String("syslog"); loghost != "" {
+		nginx.Syslog = loghost
 	}
 
 	m.Register(nginx)
