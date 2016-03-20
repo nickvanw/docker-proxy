@@ -61,6 +61,12 @@ func main() {
 			Usage:  "command to reload nginx",
 			EnvVar: "NGINX_RELOAD_CMD",
 		},
+		cli.StringFlag{
+			Name:   "nginx.syslog",
+			Value:  "",
+			Usage:  "syslog server to send nginx logs",
+			EnvVar: "NGINX_SYSLOG_HOST",
+		},
 	}
 	app.Run(os.Args)
 }
@@ -91,6 +97,10 @@ func realMain(c *cli.Context) {
 	if err != nil {
 		log.Fatalf("error creating nginx watcher: %s", err)
 	}
+	if syslog := c.String("nginx.syslog"); syslog != "" {
+		nginx.Syslog = syslog
+	}
+
 	m.Register(nginx)
 
 	ctx, cancel := context.WithCancel(context.Background())

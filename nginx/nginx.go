@@ -17,6 +17,8 @@ const sslNameEnv = "CERT_NAME"
 
 // Server represents an nginx server to configure
 type Server struct {
+	Syslog string
+
 	ssl    string
 	cfg    string
 	reload []string
@@ -60,7 +62,7 @@ func (s *Server) Update(sites []dockerproxy.Site) error {
 	defer s.Unlock()
 
 	var data bytes.Buffer
-	if err := s.headerTpl.Execute(&data, nil); err != nil {
+	if err := s.headerTpl.Execute(&data, s); err != nil {
 		return err
 	}
 

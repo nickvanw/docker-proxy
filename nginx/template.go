@@ -22,11 +22,14 @@ map $scheme $proxy_x_forwarded_ssl {
 
 gzip_types text/plain text/css application/javascript application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
 
-log_format vhost '$host $remote_addr - $remote_user [$time_local] '
-                 '"$request" $status $body_bytes_sent '
-                 '"$http_referer" "$http_user_agent"';
 
+{{ if .Syslog }}
+log_format loggly '$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" - $request_time X-Forwarded-For=$http_x_forwarded_for Host=$host';
+error_log syslog:server={{.Syslog}};
+access_log syslog:server={{.Syslog}} loggly;
+{{else}}
 access_log off;
+{{end}}
 
 # HTTP 1.1 support
 proxy_http_version 1.1;
