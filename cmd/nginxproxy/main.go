@@ -12,6 +12,7 @@ import (
 	log "github.com/Sirupsen/logrus"
 	syslogrus "github.com/Sirupsen/logrus/hooks/syslog"
 	"github.com/codegangsta/cli"
+	sentry "github.com/evalphobia/logrus_sentry"
 	"github.com/nickvanw/docker-proxy"
 	"github.com/nickvanw/docker-proxy/nginx"
 	"golang.org/x/net/context"
@@ -69,6 +70,12 @@ func main() {
 			Usage:  "syslog server to send nginx and nginxproxy logs",
 			EnvVar: "SYSLOG_HOST",
 		},
+		cli.StringFlag{
+			Name:   "sentry",
+			Value:  "",
+			Usage:  "Sentry DSN for error logs shipping to sentry",
+			EnvVar: "SENTRY_DSN",
+		},
 	}
 	app.Run(os.Args)
 }
@@ -77,6 +84,19 @@ func realMain(c *cli.Context) {
 	if loghost := c.String("syslog"); loghost != "" {
 		if hook, err := syslogrus.NewSyslogHook("udp", loghost, syslog.LOG_INFO, "nginxproxy"); err == nil {
 			log.SetFormatter(&log.JSONFormatter{})
+			log.AddHook(hook)
+		}
+	}
+
+	if sDSN := c.String("sentry"); sDSN != "" {
+		hook, err := sentry.NewSentryHook(sDSN, []log.Level{
+			log.PanicLevel,
+			log.FatalLevel,
+			log.ErrorLevel,
+		})
+
+		if err == nil {
+			hook.Timeout = 500 * time.Millisecond // bump up from 100ms
 			log.AddHook(hook)
 		}
 	}
