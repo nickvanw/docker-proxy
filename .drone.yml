@@ -1,0 +1,19 @@
+build:
+  image: golang
+  commands:
+    - go get ./...
+    - go test ./...
+    - cd cmd/nginxproxy && go build
+
+publish:
+  docker:
+    registry: registry.nvw.io
+    username: $$DOCKER_USER
+    password: $$DOCKER_PASS
+    email: nick@facepwn.com
+    repo: nginxproxy
+    tag: "$${COMMIT:0:7}"
+    context: cmd/nginxproxy
+    file: cmd/nginxproxy/Dockerfile
+    when:
+      repo: "nickvanw/docker-proxy"
