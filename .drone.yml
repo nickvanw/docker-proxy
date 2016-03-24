@@ -1,6 +1,7 @@
 build:
-  image: golang
+  image: golang:alpine
   commands:
+    - apk add --update git
     - go get ./...
     - go test ./...
     - cd cmd/nginxproxy && go build
