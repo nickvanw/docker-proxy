@@ -85,7 +85,7 @@ func TestNetworkMapping(t *testing.T) {
 		{
 			my:    []string{},
 			you:   docker.NetworkList{Networks: map[string]docker.ContainerNetwork{}},
-			ports: []docker.APIPort{docker.APIPort{PrivatePort: 9001, PublicPort: 80, IP: "4.2.2.1"}},
+			ports: []docker.APIPort{{PrivatePort: 9001, PublicPort: 80, IP: "4.2.2.1"}},
 			port:  80,
 			want:  &Mapping{Address: "4.2.2.1", Port: 80, Network: "public"},
 			ok:    true,
@@ -93,7 +93,7 @@ func TestNetworkMapping(t *testing.T) {
 		{
 			my:    []string{},
 			you:   docker.NetworkList{Networks: map[string]docker.ContainerNetwork{}},
-			ports: []docker.APIPort{docker.APIPort{PrivatePort: 9001, PublicPort: 80, IP: "4.2.2.1"}, docker.APIPort{PrivatePort: 9002, PublicPort: 81, IP: "4.2.2.1"}},
+			ports: []docker.APIPort{{PrivatePort: 9001, PublicPort: 80, IP: "4.2.2.1"}, {PrivatePort: 9002, PublicPort: 81, IP: "4.2.2.1"}},
 			port:  81,
 			want:  &Mapping{Address: "4.2.2.1", Port: 81, Network: "public"},
 			ok:    true,
@@ -101,15 +101,15 @@ func TestNetworkMapping(t *testing.T) {
 		{
 			my:    []string{},
 			you:   docker.NetworkList{Networks: map[string]docker.ContainerNetwork{}},
-			ports: []docker.APIPort{docker.APIPort{PrivatePort: 9001, PublicPort: 80, IP: "4.2.2.1"}, docker.APIPort{PrivatePort: 9002, PublicPort: 81, IP: "4.2.2.1"}},
+			ports: []docker.APIPort{{PrivatePort: 9001, PublicPort: 80, IP: "4.2.2.1"}, {PrivatePort: 9002, PublicPort: 81, IP: "4.2.2.1"}},
 			port:  82,
 			want:  nil,
 			ok:    false,
 		},
 		{
 			my:    []string{"overlay-net"},
-			you:   docker.NetworkList{Networks: map[string]docker.ContainerNetwork{"overlay-net": docker.ContainerNetwork{IPAddress: "10.0.1.2"}}},
-			ports: []docker.APIPort{docker.APIPort{PrivatePort: 9001}},
+			you:   docker.NetworkList{Networks: map[string]docker.ContainerNetwork{"overlay-net": {IPAddress: "10.0.1.2"}}},
+			ports: []docker.APIPort{{PrivatePort: 9001}},
 			port:  0,
 			want:  &Mapping{Address: "10.0.1.2", Port: 9001, Network: "overlay-net"},
 			ok:    true,
@@ -125,7 +125,7 @@ func TestNetworkMapping(t *testing.T) {
 		{
 			my:    []string{},
 			you:   docker.NetworkList{Networks: map[string]docker.ContainerNetwork{}},
-			ports: []docker.APIPort{docker.APIPort{PrivatePort: 9001, PublicPort: 80, IP: "4.2.2.1"}, docker.APIPort{PrivatePort: 9002, PublicPort: 81, IP: "4.2.2.1"}},
+			ports: []docker.APIPort{{PrivatePort: 9001, PublicPort: 80, IP: "4.2.2.1"}, {PrivatePort: 9002, PublicPort: 81, IP: "4.2.2.1"}},
 			port:  0,
 			want:  nil,
 			ok:    false,
