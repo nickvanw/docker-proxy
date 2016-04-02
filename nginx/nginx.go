@@ -2,6 +2,7 @@ package nginx
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -13,15 +14,20 @@ import (
 	"github.com/nickvanw/docker-proxy"
 )
 
-const sslNameEnv = "CERT_NAME"
+const (
+	sslNameEnv   = "CERT_NAME"
+	httpAuthUser = "AUTH_USER"
+	httpAuthPass = "AUTH_PASS"
+)
 
 // Server represents an nginx server to configure
 type Server struct {
 	Syslog string
 
-	ssl    string
-	cfg    string
-	reload []string
+	ssl      string
+	htpasswd string
+	cfg      string
+	reload   []string
 
 	headerTpl   *template.Template
 	upstreamTpl *template.Template
@@ -34,11 +40,12 @@ type Server struct {
 }
 
 // New returns a new instance of nginx to configure
-func New(ssl, config, reload string) (*Server, error) {
+func New(ssl, config, reload, htpasswd string) (*Server, error) {
 	s := &Server{
-		ssl:    ssl,
-		cfg:    config,
-		reload: strings.Split(reload, " "),
+		ssl:      ssl,
+		htpasswd: htpasswd,
+		cfg:      config,
+		reload:   strings.Split(reload, " "),
 	}
 
 	s.headerTpl = template.Must(template.New("nginxHeader").Parse(nginxHeader))
@@ -117,6 +124,14 @@ func (s *Server) renderHost(wr io.Writer, host string, site dockerproxy.Site) er
 	}
 	var ok bool
 
+	passwd, err := s.httpAuthInfo(host, site)
+	if err != nil {
+		return err
+	}
+	if passwd != "" {
+		d.Config["auth_basic"] = `"closed site"`
+		d.Config["auth_basic_user_file"] = passwd
+	}
 	if d.SSLPrefix, ok = s.sslInfo(host, site); ok {
 		if err := s.sslTpl.Execute(wr, d); err != nil {
 			return err
@@ -127,6 +142,32 @@ func (s *Server) renderHost(wr io.Writer, host string, site dockerproxy.Site) er
 		}
 	}
 	return nil
+}
+
+func (s *Server) httpAuthInfo(host string, site dockerproxy.Site) (string, error) {
+	var user, pass string
+	var ok bool
+
+	out := bytes.NewBuffer(nil)
+	if user, ok = site.Env[httpAuthUser]; ok {
+		out.Write([]byte(user + ":"))
+	} else {
+		return "", nil
+	}
+
+	if pass, ok = site.Env[httpAuthPass]; ok {
+		out.Write([]byte(pass))
+	} else {
+		return "", nil
+	}
+	fn := fmt.Sprintf("%s.htpasswd", host)
+	p := filepath.Join(s.htpasswd, fn)
+	fi, err := os.Create(p)
+	if err != nil {
+		return "", err
+	}
+	_, err = io.Copy(fi, out)
+	return p, err
 }
 
 func (s *Server) sslInfo(host string, site dockerproxy.Site) (string, bool) {

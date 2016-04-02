@@ -95,4 +95,5 @@ server {
 }
 `
 
-var nginxOptions = `{{ define "config" }}{{ range $key, $value := . }}{{ $key }} {{ $value }};{{ end }} {{ end }}`
+var nginxOptions = `{{ define "config" }}{{ range $key, $value := . }}{{ $key }} {{ $value }};
+	{{ end }} {{ end }}`
