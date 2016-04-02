@@ -48,7 +48,6 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "nginx.conf",
-			Value:  "/etc/nginx/conf.d/nginxproxy.conf",
 			Usage:  "nginx config to write",
 			EnvVar: "NGINX_CONF",
 		},

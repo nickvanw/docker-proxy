@@ -205,40 +205,69 @@ server {
 }
 
 func TestHTTPAuthInfo(t *testing.T) {
-	//dir := os.TempDir()
+	dir, err := ioutil.TempDir("", "ssltest")
+	if err != nil {
+		t.Fatalf("unable to make temp dir: %q", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(dir); err != nil {
+			t.Errorf("unable to remove temp file: %s", err)
+		}
+	}()
 
 	tt := []struct {
-		site     string
-		env      map[string]string
-		wantData []byte
-		wantOk   bool
+		site         string
+		env          map[string]string
+		wantData     []byte
+		wantFilename string
+		wantErr      error
 	}{
 		{
-			site:     "test.com",
-			env:      map[string]string{},
-			wantData: nil,
-			wantOk:   false,
+			site:         "test.com",
+			env:          map[string]string{},
+			wantFilename: "",
+			wantErr:      nil,
 		},
 		{
-			site:     "test.com",
-			env:      map[string]string{"AUTH_USER": "nick", "AUTH_PASS": "password"},
-			wantData: []byte("nick:password"),
-			wantOk:   true,
+			site:         "test.com",
+			env:          map[string]string{"AUTH_USER": "nick", "AUTH_PASS": "password"},
+			wantData:     []byte("nick:password"),
+			wantFilename: filepath.Join(dir, "test.com.htpasswd"),
+			wantErr:      nil,
 		},
 	}
 
 	for _, v := range tt {
-		s := &Server{}
+		s := &Server{
+			htpasswd: dir,
+		}
 		site := dockerproxy.Site{
 			Env: v.env,
 		}
-		info, ok := s.httpAuthInfo(v.site, site)
-		if v.wantOk != ok {
-			t.Fatalf("wanted %v, got: %v from yes/no", v.wantOk, ok)
+		fn, err := s.httpAuthInfo(v.site, site)
+
+		if err != v.wantErr {
+			t.Fatalf("wanted no %v, got: %v", v.wantErr, err)
 		}
 
-		if !bytes.Equal(info, v.wantData) {
-			t.Fatalf("wanted data: %q, got: %q", v.wantData, info)
+		if v.wantFilename != fn {
+			t.Fatalf("wanted filename: %v, got: %v", v.wantFilename, fn)
+		}
+
+		if v.wantFilename != "" {
+			fi, err := os.Open(v.wantFilename)
+			if err != nil {
+				t.Fatalf("error opening wanted file: %v", err)
+			}
+			data, err := ioutil.ReadAll(fi)
+			if err != nil {
+				t.Fatalf("unable to fetch data from file: %s", err)
+			}
+
+			if !bytes.Equal(data, v.wantData) {
+				t.Fatalf("want: %v\n got: %v", string(data), string(v.wantData))
+			}
+
 		}
 	}
 }
