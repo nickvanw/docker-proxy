@@ -40,11 +40,12 @@ type Server struct {
 }
 
 // New returns a new instance of nginx to configure
-func New(ssl, config, reload string) (*Server, error) {
+func New(ssl, config, reload, htpasswd string) (*Server, error) {
 	s := &Server{
-		ssl:    ssl,
-		cfg:    config,
-		reload: strings.Split(reload, " "),
+		ssl:      ssl,
+		htpasswd: htpasswd,
+		cfg:      config,
+		reload:   strings.Split(reload, " "),
 	}
 
 	s.headerTpl = template.Must(template.New("nginxHeader").Parse(nginxHeader))

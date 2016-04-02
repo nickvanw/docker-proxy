@@ -12,7 +12,7 @@ import (
 )
 
 func TestHostNoSSL(t *testing.T) {
-	s, err := New(os.TempDir(), os.TempDir(), "/bin/true")
+	s, err := New(os.TempDir(), os.TempDir(), "/bin/true", "")
 	if err != nil {
 		t.Fatalf("unable to create new server: %s", err)
 	}
@@ -44,7 +44,7 @@ server {
 }
 
 func TestHostWithConfigNoSSL(t *testing.T) {
-	s, err := New(os.TempDir(), os.TempDir(), "/bin/true")
+	s, err := New(os.TempDir(), os.TempDir(), "/bin/true", "")
 	if err != nil {
 		t.Fatalf("unable to create new server: %s", err)
 	}
@@ -183,7 +183,7 @@ server {
 	}
 }
 `
-	s, err := New(tmpDir, tmpDir, "")
+	s, err := New(tmpDir, tmpDir, "", "")
 	if err != nil {
 		t.Fatalf("unable to create updater: %q", err)
 	}

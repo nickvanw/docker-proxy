@@ -25,7 +25,6 @@ func main() {
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "docker.leader, l",
-			Value:  "",
 			Usage:  "Leading Docker server to pull containers from",
 			EnvVar: "DOCKER_HOST",
 		},
@@ -36,13 +35,11 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "docker.certs",
-			Value:  "",
 			Usage:  "Location of Docker TLS certs",
 			EnvVar: "DOCKER_CERT_PATH",
 		},
 		cli.StringFlag{
 			Name:   "followers, f",
-			Value:  "",
 			Usage:  "Follower Docker servers to poll for events",
 			EnvVar: "DOCKER_FOLLOWERS",
 		},
@@ -59,19 +56,21 @@ func main() {
 		},
 		cli.StringFlag{
 			Name:   "nginx.reload",
-			Value:  "",
 			Usage:  "command to reload nginx",
 			EnvVar: "NGINX_RELOAD_CMD",
 		},
 		cli.StringFlag{
+			Name:   "nginx.htpasswd",
+			Usage:  "directory to put htpasswd files",
+			EnvVar: "NGINX_HTPASSWD_DIR",
+		},
+		cli.StringFlag{
 			Name:   "syslog",
-			Value:  "",
 			Usage:  "syslog server to send nginx and nginxproxy logs",
 			EnvVar: "SYSLOG_HOST",
 		},
 		cli.StringFlag{
 			Name:   "sentry",
-			Value:  "",
 			Usage:  "Sentry DSN for error logs shipping to sentry",
 			EnvVar: "SENTRY_DSN",
 		},
@@ -121,7 +120,8 @@ func realMain(c *cli.Context) {
 	}
 
 	nginx, err := nginx.New(c.String("nginx.certs"),
-		c.String("nginx.conf"), c.String("nginx.reload"))
+		c.String("nginx.conf"), c.String("nginx.reload"),
+		c.String("nginx.htpasswd"))
 	if err != nil {
 		log.Fatalf("error creating nginx watcher: %s", err)
 	}
