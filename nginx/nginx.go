@@ -128,7 +128,7 @@ func (s *Server) renderHost(wr io.Writer, host string, site dockerproxy.Site) er
 		return err
 	}
 	if passwd != "" {
-		d.Config["auth_basic"] = "closed site"
+		d.Config["auth_basic"] = `"closed site"`
 		d.Config["auth_basic_user_file"] = passwd
 	}
 	if d.SSLPrefix, ok = s.sslInfo(host, site); ok {

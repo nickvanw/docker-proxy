@@ -57,7 +57,8 @@ func TestHostWithConfigNoSSL(t *testing.T) {
 server {
 	server_name www.google.com;
 	listen 80;
-	client_max_body_size 5m; 
+	client_max_body_size 5m;
+	 
 	location / {
 		proxy_pass http://my-id-here;
 	}
