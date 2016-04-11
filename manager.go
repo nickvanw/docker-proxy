@@ -109,6 +109,8 @@ func (m *Manager) watcher(addr string, ctx context.Context) {
 				}
 			case <-ctx.Done():
 				return
+			case <-time.After(1 * time.Hour):
+				break Watch
 			case <-time.After(30 * time.Second):
 				err = client.Ping()
 			}
