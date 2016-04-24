@@ -1,6 +1,8 @@
 package dockerproxy
 
 import (
+	"os"
+	"os/signal"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -120,6 +122,18 @@ func (m *Manager) watcher(addr string, ctx context.Context) {
 			}
 		}
 	}
+}
+
+// HandleSignals listenes for the specified signals and reloads when they
+// are signaled
+func (m *Manager) HandleSignals(sigs ...os.Signal) {
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, sigs...)
+	go func() {
+		for range sigChan {
+			m.update <- struct{}{}
+		}
+	}()
 }
 
 // Poll checks the Docker Api every `d` seconds to look for changes

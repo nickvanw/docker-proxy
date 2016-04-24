@@ -130,6 +130,8 @@ func realMain(c *cli.Context) {
 		nginx.Syslog = loghost
 	}
 
+	m.HandleSignals(syscall.SIGHUP)
+
 	m.Register(nginx)
 
 	ctx, cancel := context.WithCancel(context.Background())
