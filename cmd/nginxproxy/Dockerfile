@@ -16,6 +16,9 @@ ADD nginxproxy /nginxproxy
 # Add our service definitions
 ADD init /etc/services.d/
 
+# Add our cont-init
+ADD cont-init /etc/cont-init.d/
+
 # Add our nginx.conf
 ADD nginx/nginx.conf /etc/nginx/nginx.conf
 
