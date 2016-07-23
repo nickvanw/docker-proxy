@@ -53,7 +53,7 @@ func mapContainers(client *docker.Client, containers []docker.APIContainers) ([]
 		}
 		env, err := parseKV(info.Config.Env)
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		hosts, ok := findHosts(env)
